@@ -12,7 +12,7 @@ export interface Task {
 
 export const FindAllTasks = async (): Promise<Task[]> => {
 	try {
-		const { data } = await ApiInstance.get<Task[]>("/task/find");
+		const { data } = await ApiInstance.get<Task[]>("/task");
 		return data;
 	} catch (e) {
 		console.log("Error fetching tasks:", e);

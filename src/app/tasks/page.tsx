@@ -1,13 +1,17 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 import { FindAllTasks } from "../../modules/tasks/api/find-all";
 import { TaskColumn } from "../../modules/tasks/components/task-column";
 import { TaskDropList } from "../../modules/tasks/components/task-drop-list";
+import { TaskModal } from "../../modules/tasks/components/task-modal";
 import { TaskStatus } from "../../modules/tasks/constants/status";
 
 const TaskPage = () => {
-	const { data: tasks } = useQuery({
+	const [openModal, setOpenModal] = useState(false);
+
+	const { data: tasks, refetch } = useQuery({
 		queryKey: ["tasks"],
 		queryFn: async () => {
 			const tasks = await FindAllTasks();
@@ -20,7 +24,7 @@ const TaskPage = () => {
 			<div className="container mx-auto px-4 py-8">
 				<h1 className="text-3xl font-bold text-gray-800 mb-8">Task List</h1>
 				<button
-					// (click)="openModal()"
+					onClick={() => setOpenModal(true)}
 					className="mb-6 px-6 py-3 bg-green-500 text-white rounded-md hover:bg-green-600 transition-colors flex items-center cursor-pointer"
 				>
 					<span className="mr-2">Create New Task</span>
@@ -33,7 +37,13 @@ const TaskPage = () => {
 					</svg>
 				</button>
 
-				{/* <app-task-modal [isOpen]="showModal" (close)="closeModal()" (save)="createTask($event)"></app-task-modal> */}
+				<TaskModal
+					isOpen={openModal}
+					setIsOpen={setOpenModal}
+					onSuccess={() => {
+						refetch();
+					}}
+				/>
 
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 					{tasks ? (

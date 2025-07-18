@@ -10,11 +10,14 @@
 	},
 	"dependencies": {
 		"@dnd-kit/core": "^6.3.1",
+		"@hookform/resolvers": "^5.1.1",
 		"@tanstack/react-query": "^5.83.0",
 		"axios": "^1.10.0",
 		"next": "15.4.1",
 		"react": "19.1.0",
-		"react-dom": "19.1.0"
+		"react-dom": "19.1.0",
+		"react-hook-form": "^7.60.0",
+		"zod": "^4.0.5"
 	},
 	"devDependencies": {
 		"@eslint/eslintrc": "^3",
