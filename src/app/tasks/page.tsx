@@ -1,12 +1,15 @@
 "use client";
 
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
+import { toast } from "sonner";
+import { DeleteTask } from "../../modules/tasks/api/delete";
 import { FindAllTasks } from "../../modules/tasks/api/find-all";
 import { TaskColumn } from "../../modules/tasks/components/task-column";
 import { TaskDropList } from "../../modules/tasks/components/task-drop-list";
 import { TaskModal } from "../../modules/tasks/components/task-modal";
 import { TaskStatus } from "../../modules/tasks/constants/status";
+import { IResponse } from "../../shared/interfaces/response";
 
 const TaskPage = () => {
 	const [openModal, setOpenModal] = useState(false);
@@ -16,6 +19,24 @@ const TaskPage = () => {
 		queryFn: async () => {
 			const tasks = await FindAllTasks();
 			return tasks;
+		},
+	});
+
+	const deleteTaskMutation = useMutation({
+		mutationFn: async (id: number) => {
+			toast.dismiss();
+			toast.loading("Deleting task...");
+			const data = await DeleteTask(id);
+			return data;
+		},
+		onSuccess: async (data: IResponse) => {
+			refetch();
+			toast.dismiss();
+			toast.success(data.message);
+		},
+		onError: () => {
+			toast.dismiss();
+			toast.error("Error deleting task");
 		},
 	});
 
@@ -52,21 +73,21 @@ const TaskPage = () => {
 								{tasks
 									.filter(task => task.status === TaskStatus.PENDING)
 									.map(task => (
-										<TaskDropList key={task.id} task={task} deleteTask={() => {}} />
+										<TaskDropList key={task.id} task={task} deleteTask={deleteTaskMutation.mutate} />
 									))}
 							</TaskColumn>
 							<TaskColumn title="Doing">
 								{tasks
 									.filter(task => task.status === TaskStatus.DOING)
 									.map(task => (
-										<TaskDropList key={task.id} task={task} deleteTask={() => {}} />
+										<TaskDropList key={task.id} task={task} deleteTask={deleteTaskMutation.mutate} />
 									))}
 							</TaskColumn>
 							<TaskColumn title="Done">
 								{tasks
 									.filter(task => task.status === TaskStatus.DONE)
 									.map(task => (
-										<TaskDropList key={task.id} task={task} deleteTask={() => {}} />
+										<TaskDropList key={task.id} task={task} deleteTask={deleteTaskMutation.mutate} />
 									))}
 							</TaskColumn>
 						</>

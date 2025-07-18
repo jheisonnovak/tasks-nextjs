@@ -1,4 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
+import { toast } from "sonner";
+import { IResponse } from "../../../shared/interfaces/response";
 import { CreateTask } from "../api/create";
 import { useTaskForm } from "../hooks/task-form.hook";
 
@@ -12,12 +14,16 @@ export const TaskModal = ({ isOpen, setIsOpen, onSuccess }: { isOpen: boolean; s
 
 	const createTaskMutation = useMutation({
 		mutationFn: CreateTask,
-		onSuccess: () => {
+		onSuccess: async (data: IResponse) => {
+			toast.dismiss();
+			toast.success(data.message);
 			reset();
 			onSuccess();
 			setIsOpen(false);
 		},
 		onError: error => {
+			toast.dismiss();
+			toast.error("Error creating task");
 			console.error("Error creating task:", error);
 		},
 	});
