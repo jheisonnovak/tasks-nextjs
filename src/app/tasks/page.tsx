@@ -1,15 +1,17 @@
 "use client";
 
+import { DndContext, DragEndEvent } from "@dnd-kit/core";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DeleteTask } from "../../modules/tasks/api/delete";
 import { FindAllTasks } from "../../modules/tasks/api/find-all";
+import { UpdateTask } from "../../modules/tasks/api/update";
 import { TaskColumn } from "../../modules/tasks/components/task-column";
 import { TaskDropList } from "../../modules/tasks/components/task-drop-list";
 import { TaskModal } from "../../modules/tasks/components/task-modal";
 import { TaskStatus } from "../../modules/tasks/constants/status";
-import { IResponse } from "../../shared/interfaces/response";
+import { IGlobalMessage } from "../../shared/interfaces/response";
 
 const TaskPage = () => {
 	const [openModal, setOpenModal] = useState(false);
@@ -26,10 +28,10 @@ const TaskPage = () => {
 		mutationFn: async (id: number) => {
 			toast.dismiss();
 			toast.loading("Deleting task...");
-			const data = await DeleteTask(id);
-			return data;
+			const response = await DeleteTask(id);
+			return response.data;
 		},
-		onSuccess: async (data: IResponse) => {
+		onSuccess: async (data: IGlobalMessage) => {
 			refetch();
 			toast.dismiss();
 			toast.success(data.message);
@@ -39,6 +41,41 @@ const TaskPage = () => {
 			toast.error("Error deleting task");
 		},
 	});
+
+	const updateTaskMutation = useMutation({
+		mutationFn: async ({ id, status }: { id: number; status: TaskStatus }) => {
+			toast.dismiss();
+			toast.loading("Updating task status...");
+			const response = await UpdateTask({ id, status });
+			if (!response.success) throw new Error(response.data.message);
+			return response.data;
+		},
+		onSuccess: async (data: IGlobalMessage) => {
+			refetch();
+			toast.dismiss();
+			toast.success(data.message);
+		},
+		onError: error => {
+			toast.dismiss();
+			console.log(error);
+			toast.error(error.message);
+		},
+	});
+
+	const handleDragEnd = (event: DragEndEvent) => {
+		const { active, over } = event;
+
+		if (!over) return;
+
+		const taskId = active.id as number;
+		const newStatus = over.id as TaskStatus;
+
+		const draggedTask = tasks?.success && tasks?.data?.find(task => task.id === taskId);
+
+		if (!draggedTask || draggedTask.status === newStatus) return;
+
+		updateTaskMutation.mutate({ id: taskId, status: newStatus });
+	};
 
 	return (
 		<>
@@ -67,30 +104,30 @@ const TaskPage = () => {
 				/>
 
 				<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-					{tasks ? (
-						<>
-							<TaskColumn title="Pending">
-								{tasks
+					{tasks?.success ? (
+						<DndContext onDragEnd={handleDragEnd}>
+							<TaskColumn title="Pending" status={TaskStatus.PENDING}>
+								{tasks.data
 									.filter(task => task.status === TaskStatus.PENDING)
 									.map(task => (
 										<TaskDropList key={task.id} task={task} deleteTask={deleteTaskMutation.mutate} />
 									))}
 							</TaskColumn>
-							<TaskColumn title="Doing">
-								{tasks
+							<TaskColumn title="Doing" status={TaskStatus.DOING}>
+								{tasks.data
 									.filter(task => task.status === TaskStatus.DOING)
 									.map(task => (
 										<TaskDropList key={task.id} task={task} deleteTask={deleteTaskMutation.mutate} />
 									))}
 							</TaskColumn>
-							<TaskColumn title="Done">
-								{tasks
+							<TaskColumn title="Done" status={TaskStatus.DONE}>
+								{tasks.data
 									.filter(task => task.status === TaskStatus.DONE)
 									.map(task => (
 										<TaskDropList key={task.id} task={task} deleteTask={deleteTaskMutation.mutate} />
 									))}
 							</TaskColumn>
-						</>
+						</DndContext>
 					) : (
 						<div className="col-span-3 text-center text-gray-500">Loading...</div>
 					)}

@@ -1,6 +1,7 @@
 "use server";
 
-import { ApiInstance } from "../../../shared/api/config";
+import { ApiResponse } from "../../../shared/interfaces/response";
+import { createRequest } from "../../../shared/lib/create-request";
 import { TaskStatus } from "../constants/status";
 
 export interface Task {
@@ -10,12 +11,6 @@ export interface Task {
 	status: TaskStatus;
 }
 
-export const FindAllTasks = async (): Promise<Task[]> => {
-	try {
-		const { data } = await ApiInstance.get<Task[]>("/task");
-		return data;
-	} catch (e) {
-		console.log("Error fetching tasks:", e);
-		throw e;
-	}
+export const FindAllTasks = async (): Promise<ApiResponse<Task[]>> => {
+	return createRequest({ method: "get", path: "/task" });
 };

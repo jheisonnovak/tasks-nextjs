@@ -1,14 +1,8 @@
 "use server";
 
-import { ApiInstance } from "../../../shared/api/config";
-import { IResponse } from "../../../shared/interfaces/response";
+import { ApiResponse, IGlobalMessage } from "../../../shared/interfaces/response";
+import { createRequest } from "../../../shared/lib/create-request";
 
-export const DeleteTask = async (taskId: number): Promise<IResponse> => {
-	try {
-		const { data } = await ApiInstance.delete<IResponse>(`/task/${taskId}`);
-		return data;
-	} catch (error) {
-		console.error("Error deleting task:", error);
-		throw error;
-	}
+export const DeleteTask = async (taskId: number): Promise<ApiResponse<IGlobalMessage>> => {
+	return createRequest({ method: "delete", path: `/task/${taskId}` });
 };
