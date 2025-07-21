@@ -1,20 +1,22 @@
 "use client";
 
 import { DndContext, DragEndEvent } from "@dnd-kit/core";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { restrictToWindowEdges } from "@dnd-kit/modifiers";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { toast } from "sonner";
 import { DeleteTask } from "../../modules/tasks/api/delete";
-import { FindAllTasks } from "../../modules/tasks/api/find-all";
+import { FindAllTasks, Task } from "../../modules/tasks/api/find-all";
 import { UpdateTask } from "../../modules/tasks/api/update";
 import { TaskColumn } from "../../modules/tasks/components/task-column";
 import { TaskDropList } from "../../modules/tasks/components/task-drop-list";
 import { TaskModal } from "../../modules/tasks/components/task-modal";
 import { TaskStatus } from "../../modules/tasks/constants/status";
-import { IGlobalMessage } from "../../shared/interfaces/response";
+import { ApiResponse, IGlobalMessage } from "../../shared/interfaces/response";
 
 const TaskPage = () => {
 	const [openModal, setOpenModal] = useState(false);
+	const queryClient = useQueryClient();
 
 	const { data: tasks, refetch } = useQuery({
 		queryKey: ["tasks"],
@@ -50,30 +52,44 @@ const TaskPage = () => {
 			if (!response.success) throw new Error(response.data.message);
 			return response.data;
 		},
-		onSuccess: async (data: IGlobalMessage) => {
-			refetch();
-			toast.dismiss();
-			toast.success(data.message);
+		onMutate: async ({ id, status }) => {
+			await queryClient.cancelQueries({ queryKey: ["tasks"] });
+			const previousTasks = queryClient.getQueryData(["tasks"]);
+			queryClient.setQueryData(["tasks"], (old: ApiResponse<Task[]>) => {
+				if (!old?.success) return old;
+
+				return {
+					...old,
+					data: old.data.map((task: Task) => (task.id === id ? { ...task, status } : task)),
+				};
+			});
+
+			return { previousTasks };
 		},
-		onError: error => {
+		onSuccess: async () => {
 			toast.dismiss();
-			console.log(error);
+		},
+		onError: (error, _, context) => {
+			toast.dismiss();
 			toast.error(error.message);
+			if (context?.previousTasks) {
+				queryClient.setQueryData(["tasks"], context.previousTasks);
+			}
+		},
+		onSettled: () => {
+			queryClient.invalidateQueries({ queryKey: ["tasks"] });
 		},
 	});
 
 	const handleDragEnd = (event: DragEndEvent) => {
 		const { active, over } = event;
-
 		if (!over) return;
 
 		const taskId = active.id as number;
 		const newStatus = over.id as TaskStatus;
-
 		const draggedTask = tasks?.success && tasks?.data?.find(task => task.id === taskId);
 
 		if (!draggedTask || draggedTask.status === newStatus) return;
-
 		updateTaskMutation.mutate({ id: taskId, status: newStatus });
 	};
 
@@ -103,9 +119,9 @@ const TaskPage = () => {
 					}}
 				/>
 
-				<div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+				<div className="grid grid-cols-1 lg:grid-cols-3 gap-4 relative w-full">
 					{tasks?.success ? (
-						<DndContext onDragEnd={handleDragEnd}>
+						<DndContext modifiers={[restrictToWindowEdges]} onDragEnd={handleDragEnd}>
 							<TaskColumn title="Pending" status={TaskStatus.PENDING}>
 								{tasks.data
 									.filter(task => task.status === TaskStatus.PENDING)

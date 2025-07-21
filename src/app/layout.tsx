@@ -26,11 +26,13 @@ export default function RootLayout({
 }>) {
 	return (
 		<html lang="en">
-			<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-				<Providers>
-					<Header />
-					{children}
-				</Providers>
+			<body className={`${geistSans.variable} ${geistMono.variable} antialiased min-h-screen`}>
+				<section className="overflow-hidden max-w-full min-h-screen">
+					<Providers>
+						<Header />
+						{children}
+					</Providers>
+				</section>
 			</body>
 		</html>
 	);
