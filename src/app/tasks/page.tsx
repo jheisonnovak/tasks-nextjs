@@ -57,13 +57,11 @@ const TaskPage = () => {
 			const previousTasks = queryClient.getQueryData(["tasks"]);
 			queryClient.setQueryData(["tasks"], (old: ApiResponse<Task[]>) => {
 				if (!old?.success) return old;
-
 				return {
 					...old,
 					data: old.data.map((task: Task) => (task.id === id ? { ...task, status } : task)),
 				};
 			});
-
 			return { previousTasks };
 		},
 		onSuccess: async () => {
